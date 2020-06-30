@@ -2,6 +2,7 @@
 #include "WindowsAudioCaptureComponent.h"
 #include "WindowsAudioCapture.h"
 
+
 // Sets default values for this component's properties
 UWindowsAudioCaptureComponent::UWindowsAudioCaptureComponent()
 {
@@ -13,7 +14,6 @@ UWindowsAudioCaptureComponent::~UWindowsAudioCaptureComponent()
 	if (!FAudioCaptureWorker::Runnable == NULL)
 	{
 		FAudioCaptureWorker::Runnable->ShutdownWorker();
-
 	}
 }
 
@@ -27,8 +27,13 @@ void UWindowsAudioCaptureComponent::BeginPlay()
 		// Init new Worker 
 		FAudioCaptureWorker::Runnable->InitializeWorker();
 	}
-
 }
+
+void UWindowsAudioCaptureComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+}
+
 
 // Called every frame
 void UWindowsAudioCaptureComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -70,14 +75,11 @@ void UWindowsAudioCaptureComponent::BP_GetAverageSubBassValue(TArray<float> InFr
 	BP_GetAverageFrequencyValueInRange(InFrequencies, 20, 60, OutAverageSubBass);
 }
 
-
 // This function will return the average value for Bass (60 to 250hz)
-void UWindowsAudioCaptureComponent::BP_GetAverageBassValue(TArray<float> InFrequencies,float& OutAverageBass)
+void UWindowsAudioCaptureComponent::BP_GetAverageBassValue(TArray<float> InFrequencies, float& OutAverageBass)
 {
 	BP_GetAverageFrequencyValueInRange(InFrequencies, 60, 250, OutAverageBass);
 }
-
-
 
 void UWindowsAudioCaptureComponent::BP_GetAverageFrequencyValueInRange
 (
@@ -91,13 +93,13 @@ void UWindowsAudioCaptureComponent::BP_GetAverageFrequencyValueInRange
 	OutAverageFrequency = 0.0f;
 
 	if (InStartFrequency >= InEndFrequency || InStartFrequency < 0 || InEndFrequency > 22000)
-	return;
+		return;
 
-	int32 FStart	= (int32)(InStartFrequency  * InFrequencies.Num() * 2 / 48000);
-	int32 FEnd		= (int32)(InEndFrequency * InFrequencies.Num() * 2 / 48000);
+	int32 FStart = (int32)(InStartFrequency  * InFrequencies.Num() * 2 / 48000);
+	int32 FEnd = (int32)(InEndFrequency * InFrequencies.Num() * 2 / 48000);
 
 	if (FStart < 0 || FEnd >= InFrequencies.Num())
-	return;
+		return;
 
 	int32 NumberOfFrequencies = 0;
 

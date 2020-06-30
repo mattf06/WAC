@@ -15,7 +15,7 @@ AudioListener::AudioListener(int BitsPerSample, int FormatTag, int BlockAlign, i
 	HRESULT hr;
 	REFERENCE_TIME hnsRequestedDuration = m_refTimesPerSec;
 
-	hr = CoCreateInstance(m_CLSID_MMDeviceEnumerator, NULL,CLSCTX_ALL, m_IID_IMMDeviceEnumerator,(void**)&m_pEnumerator);
+	hr = CoCreateInstance(m_CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, m_IID_IMMDeviceEnumerator, (void**)&m_pEnumerator);
 
 	if (hr)	throw hr;
 
@@ -24,7 +24,7 @@ AudioListener::AudioListener(int BitsPerSample, int FormatTag, int BlockAlign, i
 		eRender, eConsole, &m_pDevice);
 	if (hr)	throw hr;
 
-	hr = m_pDevice->Activate(m_IID_IAudioClient, CLSCTX_ALL,NULL, (void**)&m_pAudioClient);
+	hr = m_pDevice->Activate(m_IID_IAudioClient, CLSCTX_ALL, NULL, (void**)&m_pAudioClient);
 	if (hr)	throw hr;
 
 	hr = m_pAudioClient->GetMixFormat(&m_pwfx);
@@ -51,13 +51,13 @@ AudioListener::AudioListener(int BitsPerSample, int FormatTag, int BlockAlign, i
 	hr = m_pAudioClient->GetBufferSize(&m_bufferFrameCount);
 	if (hr)	throw hr;
 
-	hr = m_pAudioClient->GetService(m_IID_IAudioCaptureClient,(void**)&m_pCaptureClient);
+	hr = m_pAudioClient->GetService(m_IID_IAudioCaptureClient, (void**)&m_pCaptureClient);
 	if (hr) throw hr;
 
 
 	// Calculate the actual duration of the allocated buffer.
 	m_hnsActualDuration = (double)m_refTimesPerSec *
-	m_bufferFrameCount / m_pwfx->nSamplesPerSec;
+		m_bufferFrameCount / m_pwfx->nSamplesPerSec;
 }
 AudioListener::~AudioListener()
 {
@@ -86,13 +86,17 @@ HRESULT AudioListener::RecordAudioStream(IAudioSink* Sink, bool& Done)
 		while (packetLength != 0)
 		{
 			// Get the available data in the shared buffer.
-			hr = m_pCaptureClient->GetBuffer(&pData,&numFramesAvailable,&flags, NULL, NULL);
+			hr = m_pCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, NULL, NULL);
 			if (hr) throw hr;
 
-			//if (flags & AUDCLNT_BUFFERFLAGS_SILENT)
-			//{
-			//	pData = NULL;  // Tell CopyData to write silence.
-			//}
+			if (flags & AUDCLNT_BUFFERFLAGS_SILENT)
+			{
+				//pData = NULL;  // Tell CopyData to write silence.
+				for (UINT32 i = 0; i < numFramesAvailable; i++)
+				{
+					pData[i] = 0;
+				}
+			}
 
 			// Copy the available capture data to the audio sink.
 			hr = Sink->CopyData(pData, numFramesAvailable);

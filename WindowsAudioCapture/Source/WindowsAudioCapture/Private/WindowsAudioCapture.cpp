@@ -3,6 +3,8 @@
 
 #define LOCTEXT_NAMESPACE "FWindowsAudioCaptureModule"
 
+DEFINE_LOG_CATEGORY(WindowsAudioCaptureLog)
+
 void FWindowsAudioCaptureModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
@@ -15,5 +17,5 @@ void FWindowsAudioCaptureModule::ShutdownModule()
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FWindowsAudioCaptureModule, WindowsAudioCapture)

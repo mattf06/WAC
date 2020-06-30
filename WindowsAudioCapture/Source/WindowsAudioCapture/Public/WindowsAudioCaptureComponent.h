@@ -1,15 +1,20 @@
 //Windows Audio Capture (WAC) by KwstasG (Kostas Giannakakis)
 #pragma once
 
+#ifndef NTDDI_THRESHOLD
+#define NTDDI_THRESHOLD NTDDI_VERSION
+#endif
+
 #include "Components/ActorComponent.h"
 #include "AudioCaptureWorker.h"
 #include "WindowsAudioCaptureComponent.generated.h"
+
 
 /**
 * This Component starts a Listener that captures frequency information from the Windows Default Audio Device.
 * You need to have it inside your Blueprint in order to call "Get Frequency Array" function.
 */
-UCLASS(ClassGroup = (Audio), meta = (BlueprintSpawnableComponent), meta = (DisplayName = "Windows Audio Capture"))
+UCLASS(ClassGroup = "Audio", meta = (BlueprintSpawnableComponent, DisplayName = "Windows Audio Capture"))
 class WINDOWSAUDIOCAPTURE_API UWindowsAudioCaptureComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -35,13 +40,13 @@ public:
 	*
 	*/
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Frequency Array", Keywords = "Get Frequency Array"), Category = "WindowsAudioCapture | Frequency Array")
-	static TArray<float> BP_GetFrequencyArray
-	(
-		float inFreqLogBase = 10.0,
-		float inFreqMultiplier = 0.25,
-		float inFreqPower = 6.0,
-		float inFreqOffset = 0.0
-	);
+		static TArray<float> BP_GetFrequencyArray
+		(
+			float inFreqLogBase = 10.0,
+			float inFreqMultiplier = 0.25,
+			float inFreqPower = 6.0,
+			float inFreqOffset = 0.0
+		);
 
 
 	/**
@@ -53,7 +58,7 @@ public:
 	*
 	*/
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Get Specific Freq Value", Keywords = "Get Specific Freq Value"), Category = "WindowsAudioCapture | Frequency Values")
-	static void BP_GetSpecificFrequencyValue(TArray<float> InFrequencies, int32 InWantedFrequency, float& OutFrequencyValue);
+		static void BP_GetSpecificFrequencyValue(TArray<float> InFrequencies, int32 InWantedFrequency, float& OutFrequencyValue);
 
 
 	/**
@@ -64,7 +69,7 @@ public:
 	*
 	*/
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Get Average Subbass Value", Keywords = "Get Average Subbass Value"), Category = "WindowsAudioCapture | Frequency Values")
-	static void BP_GetAverageSubBassValue(TArray<float> InFrequencies, float& OutAverageSubBass);
+		static void BP_GetAverageSubBassValue(TArray<float> InFrequencies, float& OutAverageSubBass);
 
 
 	/**
@@ -75,7 +80,7 @@ public:
 	*
 	*/
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Get Average Bass Value", Keywords = "Get Average Bass Value"), Category = "WindowsAudioCapture | Frequency Values")
-	static void BP_GetAverageBassValue(TArray<float> InFrequencies,float& OutAverageBass);
+		static void BP_GetAverageBassValue(TArray<float> InFrequencies, float& OutAverageBass);
 
 
 	/**
@@ -88,22 +93,20 @@ public:
 	*
 	*/
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Get Average Freq Value In Range", Keywords = "Get Average Freq Value In Range"), Category = "WindowsAudioCapture | Frequency Values")
-	static void BP_GetAverageFrequencyValueInRange
-	(
-		TArray<float> InFrequencies, 
-		int32 InStartFrequency, 
-		int32 InEndFrequency, 
-		float& OutAverageFrequency
-	);
-
+		static void BP_GetAverageFrequencyValueInRange
+		(
+			TArray<float> InFrequencies,
+			int32 InStartFrequency,
+			int32 InEndFrequency,
+			float& OutAverageFrequency
+		);
 
 protected:
 
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-
 
 };

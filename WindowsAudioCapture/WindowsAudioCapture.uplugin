@@ -1,24 +1,24 @@
 {
-	"FileVersion": 3,
-	"Version": 1,
-	"VersionName": "1.0.4.20",
-	"FriendlyName": "Windows Audio Capture",
-	"Description": "Captures live audio frequency values from the windows default playback device.",
-	"Category": "WAC",
-	"CreatedBy": "Kostas Giannakakis",
-	"CreatedByURL": "https://github.com/kwstasg/WAC",
-	"DocsURL": "https://github.com/kwstasg/WAC",
-	"MarketplaceURL": "",
-	"SupportURL": "mailto:kwstasg@gmail.com",
-	"EngineVersion": "4.20.0",
-	"CanContainContent": false,
-	"IsBetaVersion": false,
-	"Installed": false,
-	"Modules": [
-		{
-			"Name": "WindowsAudioCapture",
-			"Type": "Runtime",
-			"LoadingPhase": "Default"
-		}
-	]
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0.4.21",
+  "FriendlyName": "Windows Audio Capture",
+  "Description": "Captures live audio frequency values from the windows default playback device.",
+  "Category": "WAC",
+  "CreatedBy": "Kostas Giannakakis",
+  "CreatedByURL": "https://github.com/kwstasg/WAC",
+  "DocsURL": "https://github.com/kwstasg/WAC",
+  "MarketplaceURL": "",
+  "SupportURL": "mailto:kwstasg@gmail.com",
+  "EngineVersion": "4.25",
+  "CanContainContent": false,
+  "IsBetaVersion": false,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "WindowsAudioCapture",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
 }

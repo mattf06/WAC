@@ -2,10 +2,15 @@
 #include "AudioCaptureWorker.h"
 #include "WindowsAudioCapture.h"
 
+
+
 FAudioCaptureWorker* FAudioCaptureWorker::Runnable = NULL;
 int32 FAudioCaptureWorker::ThreadCounter = 0;
 
-FAudioCaptureWorker::FAudioCaptureWorker() : m_sink(), m_listener(16, WAVE_FORMAT_PCM, 4, 0),Thread(NULL)
+FAudioCaptureWorker::FAudioCaptureWorker()
+	: Thread(NULL)
+	, m_listener(16, WAVE_FORMAT_PCM, 4, 0)
+	, m_sink()
 {
 	// Higher overall ThreadCounter to avoid duplicated names
 	FAudioCaptureWorker::ThreadCounter++;
@@ -29,7 +34,6 @@ FAudioCaptureWorker* FAudioCaptureWorker::InitializeWorker()
 	return Runnable;
 }
 
-
 bool FAudioCaptureWorker::Init()
 {
 	// Make sure the Worker is marked is not finished
@@ -37,7 +41,6 @@ bool FAudioCaptureWorker::Init()
 
 	return true;
 }
-
 
 uint32 FAudioCaptureWorker::Run()
 {
@@ -53,14 +56,12 @@ void FAudioCaptureWorker::Stop()
 
 void FAudioCaptureWorker::ShutdownWorker()
 {
-	if (Runnable)
-	{
+	if (Runnable) {
 		Runnable->EnsureCompletion();
 		delete Runnable;
 		Runnable = NULL;
 	}
 }
-
 
 void FAudioCaptureWorker::Exit()
 {
@@ -77,20 +78,17 @@ void FAudioCaptureWorker::EnsureCompletion()
 	if (Thread != NULL) {
 
 		Thread->WaitForCompletion();
-	}		
+	}
 }
-
 
 TArray<float> FAudioCaptureWorker::GetFrequencyArray(float FreqLogBase, float FreqMultiplier, float FreqPower, float FreqOffset)
 {
+	TRACE_CPUPROFILER_EVENT_SCOPE(TEXT("FAudioCaptureWorker::GetFrequencyArray"));
+	TArray<float> freqs;
+	AudioChunk chunk;
 
-	TArray<float>	freqs;
-	AudioChunk		chunk;
-
-	if (m_sink.Dequeue(chunk))
-	{
-		if (chunk.size <= 0)
-		{
+	if (m_sink.Dequeue(chunk)) {
+		if (chunk.size <= 0) {
 			return freqs;
 		}
 
@@ -99,7 +97,6 @@ TArray<float> FAudioCaptureWorker::GetFrequencyArray(float FreqLogBase, float Fr
 
 		//Empty chunk's trash
 		m_sink.EmptyQueue(chunk);
-
 	}
 
 	TArray<float> resultFloats;
@@ -107,10 +104,8 @@ TArray<float> FAudioCaptureWorker::GetFrequencyArray(float FreqLogBase, float Fr
 
 	resultFloats.Reserve(count);
 
-	for (float i = 1; i < freqs.Num() / 2; i++)
-	{
-		if (freqs[i] < 0)
-		{
+	for (float i = 1; i < freqs.Num() / 2; i++) {
+		if (freqs[i] < 0) {
 			freqs[i] = 0;
 		}
 
@@ -119,7 +114,6 @@ TArray<float> FAudioCaptureWorker::GetFrequencyArray(float FreqLogBase, float Fr
 
 	return resultFloats;
 }
-
 
 float GetTheFFTInValue(const int16 InSampleValue, const int16 InSampleIndex, const int16 InSampleCount)
 {
@@ -130,9 +124,7 @@ float GetTheFFTInValue(const int16 InSampleValue, const int16 InSampleIndex, con
 	return FFTValue;
 }
 
-
-void FAudioCaptureWorker::CalculateFrequencySpectrum
-(
+void FAudioCaptureWorker::CalculateFrequencySpectrum(
 	int16* SamplePointer,
 	const int32 NumChannels,
 	const int32 NumAvailableSamples,
@@ -140,18 +132,15 @@ void FAudioCaptureWorker::CalculateFrequencySpectrum
 	float FreqMultiplier,
 	float FreqPower,
 	float FreqOffset,
-	TArray<float>& OutFrequencies
-)
+	TArray<float>& OutFrequencies)
 {
 	// Clear the Array before continuing
 	OutFrequencies.Empty();
 
 	// Make sure the Number of Channels is correct
-	if (NumChannels > 0 && NumChannels <= 2)
-	{
+	if (NumChannels > 0 && NumChannels <= 2) {
 		// Check if we actually have a Buffer to work with
-		if (SamplePointer != NULL && SamplePointer != nullptr)
-		{
+		if (SamplePointer != NULL && SamplePointer != nullptr) {
 
 			// Get Maximum amount of samples in this Sound
 			const int32 SampleCount = NumAvailableSamples;
@@ -188,10 +177,9 @@ void FAudioCaptureWorker::CalculateFrequencySpectrum
 			kiss_fftnd_cfg STF = kiss_fftnd_alloc(Dims, 1, 0, nullptr, nullptr);
 
 			int16* SamplePtr = SamplePointer;
-	
+
 			// Allocate space in the Buffer and Output Arrays for all the data that FFT returns
-			for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ChannelIndex++)
-			{
+			for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ChannelIndex++) {
 				Buffer[ChannelIndex] = (kiss_fft_cpx*)KISS_FFT_MALLOC(sizeof(kiss_fft_cpx) * SamplesToRead);
 				Output[ChannelIndex] = (kiss_fft_cpx*)KISS_FFT_MALLOC(sizeof(kiss_fft_cpx) * SamplesToRead);
 			}
@@ -199,68 +187,58 @@ void FAudioCaptureWorker::CalculateFrequencySpectrum
 			// Shift our SamplePointer to the Current "FirstSample"
 			SamplePtr += FirstSample * NumChannels;
 
-			for (int32 SampleIndex = 0; SampleIndex < SamplesToRead ; SampleIndex++)
-			{
-				
-				for (int32 ChannelIndex = 0; ChannelIndex < NumChannels ; ChannelIndex++)
-				{
+			for (int32 SampleIndex = 0; SampleIndex < SamplesToRead; SampleIndex++) {
+
+				for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ChannelIndex++) {
 					// Make sure the Point is Valid and we don't go out of bounds
-					if (SamplePtr != NULL && SamplePtr != nullptr && (SampleIndex + FirstSample < SampleCount))
-					{
+					if (SamplePtr != NULL && SamplePtr != nullptr && (SampleIndex + FirstSample < SampleCount)) {
 						// Use Window function to get a better result for the Data (Hann Window)
 						Buffer[ChannelIndex][SampleIndex].r = GetTheFFTInValue(*SamplePtr, SampleIndex, SamplesToRead);
 						Buffer[ChannelIndex][SampleIndex].i = 0.f;
 					}
-					else
-					{
+					else {
 						// Use Window function to get a better result for the Data (Hann Window)
 						Buffer[ChannelIndex][SampleIndex].r = 0.f;
 						Buffer[ChannelIndex][SampleIndex].i = 0.f;
 					}
 
 					// Take the next Sample - Halfed Causes SamplePtr Exception
-					if (SamplePtr != NULL && SamplePtr != nullptr && (SampleIndex + FirstSample < SampleCount / 2))
-					{
+					if (SamplePtr != NULL && SamplePtr != nullptr && (SampleIndex + FirstSample < SampleCount / 2)) {
 						SamplePtr++;
 					}
-				
+					else {
+						SamplePtr = 0;
+					}
 				}
 			}
 
 			// Now that the Buffer is filled, use the FFT
-			for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ChannelIndex++)
-			{
-				if (Buffer[ChannelIndex])
-				{
+			for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ChannelIndex++) {
+				if (Buffer[ChannelIndex]) {
 					kiss_fftnd(STF, Buffer[ChannelIndex], Output[ChannelIndex]);
 				}
 			}
 
 			OutFrequencies.AddZeroed(SamplesToRead);
 
-			for (int32 SampleIndex = 0; SampleIndex < SamplesToRead; ++SampleIndex)
-			{
+			for (int32 SampleIndex = 0; SampleIndex < SamplesToRead; ++SampleIndex) {
 
 				double ChannelSum = 0.0f;
 
-				for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ++ChannelIndex)
-				{
-					if (Output[ChannelIndex])
-					{
+				for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ++ChannelIndex) {
+					if (Output[ChannelIndex]) {
 						// With this we get the actual Frequency value for the frequencies from 0hz to ~22000hz
 						ChannelSum += FMath::Sqrt(FMath::Square(Output[ChannelIndex][SampleIndex].r) + FMath::Square(Output[ChannelIndex][SampleIndex].i));
 					}
 				}
 
-				OutFrequencies[SampleIndex] = FMath::Pow((FMath::LogX(FreqLogBase, ChannelSum / NumChannels) * FreqMultiplier),FreqPower) + FreqOffset;
-
+				OutFrequencies[SampleIndex] = FMath::Pow((FMath::LogX(FreqLogBase, ChannelSum / NumChannels) * FreqMultiplier), FreqPower) + FreqOffset;
 			}
 
 			// Make sure to free up the FFT stuff
 			KISS_FFT_FREE(STF);
 
-			for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ++ChannelIndex)
-			{
+			for (int32 ChannelIndex = 0; ChannelIndex < NumChannels; ++ChannelIndex) {
 				KISS_FFT_FREE(Buffer[ChannelIndex]);
 				KISS_FFT_FREE(Output[ChannelIndex]);
 			}

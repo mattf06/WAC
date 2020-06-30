@@ -27,9 +27,20 @@ bool AudioSink::EmptyQueue(AudioChunk& Chunk)
 {
 	//std::lock_guard<std::mutex> lock(m_mutex);
 
+	if (Chunk.chunk != nullptr)
+	{
+		delete[] Chunk.chunk;
+		Chunk.chunk = nullptr;
+	}
+
 	while (m_queue.size() > 0)
 	{
 		Chunk = m_queue.front();
+		if (Chunk.chunk != nullptr)
+		{
+			delete[] Chunk.chunk;
+			Chunk.chunk = nullptr;
+		}
 		m_queue.pop();
 	}
 
@@ -48,11 +59,11 @@ int AudioSink::CopyData(const BYTE* Data, const int NumFramesAvailable)
 		m_queue.push(chunk);
 		return 0;
 	}
-	chunk.size		= NumFramesAvailable * 2;
-	chunk.chunk		= new int16[chunk.size];
-	int multiplier	= sizeof(int16) / sizeof(unsigned char);
+	chunk.size = NumFramesAvailable * 2;
+	chunk.chunk = new int16[chunk.size];
+	int multiplier = sizeof(int16) / sizeof(unsigned char);
 	std::memcpy(chunk.chunk, Data, chunk.size * multiplier);
-	bool nonZero	= false;
+	bool nonZero = false;
 
 	for (int i = 0; i < chunk.size; i++)
 	{

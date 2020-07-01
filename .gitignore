@@ -74,3 +74,5 @@ WindowsAudioCapture/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+/WindowsAudioCapture/Intermediate
+/WindowsAudioCapture/Binaries

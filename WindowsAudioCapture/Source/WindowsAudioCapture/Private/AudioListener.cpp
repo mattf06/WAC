@@ -2,6 +2,10 @@
 #include "AudioListener.h"
 #include "WindowsAudioCapture.h"
 
+#define SAFE_RELEASE(punk)  \
+			  if ((punk) != NULL)  \
+				{ (punk)->Release(); (punk) = NULL; }
+
 HRESULT ThrowOrExit(HRESULT hr)
 {
 	return hr;
@@ -59,9 +63,12 @@ AudioListener::AudioListener(int BitsPerSample, int FormatTag, int BlockAlign, i
 	m_hnsActualDuration = (double)m_refTimesPerSec *
 		m_bufferFrameCount / m_pwfx->nSamplesPerSec;
 }
+
 AudioListener::~AudioListener()
 {
+
 }
+
 HRESULT AudioListener::RecordAudioStream(IAudioSink* Sink, bool& Done)
 {
 	HRESULT hr;
@@ -89,9 +96,8 @@ HRESULT AudioListener::RecordAudioStream(IAudioSink* Sink, bool& Done)
 			hr = m_pCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, NULL, NULL);
 			if (hr) throw hr;
 
-			if (flags & AUDCLNT_BUFFERFLAGS_SILENT)
+			if ((flags & AUDCLNT_BUFFERFLAGS_SILENT) || (flags & AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY))
 			{
-				//pData = NULL;  // Tell CopyData to write silence.
 				for (UINT32 i = 0; i < numFramesAvailable; i++)
 				{
 					pData[i] = 0;
@@ -112,5 +118,12 @@ HRESULT AudioListener::RecordAudioStream(IAudioSink* Sink, bool& Done)
 
 	hr = m_pAudioClient->Stop();  // Stop recording.
 	if (hr) throw hr;
+
+	CoTaskMemFree(m_pwfx);
+	SAFE_RELEASE(m_pEnumerator);
+	SAFE_RELEASE(m_pDevice);
+	SAFE_RELEASE(m_pAudioClient);
+	SAFE_RELEASE(m_pCaptureClient);
+
 	return hr;
 }

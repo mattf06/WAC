@@ -2,29 +2,27 @@
 #pragma once
 
 #include "IAudioSink.h"
-#include <queue>
 #include <mutex>
+#include <queue>
 
-struct AudioChunk
-{
-	int16* chunk;
-	int size;
+struct AudioChunk {
+    int16* chunk = nullptr;
+    int size = 0;
 };
 
-class AudioSink : public IAudioSink
-{
+class AudioSink : public IAudioSink {
 public:
-	bool Dequeue(AudioChunk& Chunk);
-	bool EmptyQueue(AudioChunk& Chunk);
-	int CopyData(const BYTE* Data, const int NumFramesAvailable) override;
-	AudioSink();
-	~AudioSink();
-private:
-	std::queue<AudioChunk> m_queue;
-	int m_bitDepth;
-	int m_maxSampleVal;
-	int m_nChannels;
-	int m_chunkSize;
-	std::mutex m_mutex;
-};
+    bool Dequeue(AudioChunk& Chunk);
+    bool EmptyQueue(AudioChunk& Chunk);
+    int CopyData(const BYTE* Data, const int NumFramesAvailable) override;
+    AudioSink();
+    ~AudioSink();
 
+private:
+    TQueue<AudioChunk> m_queue;
+    int m_bitDepth;
+    int m_maxSampleVal;
+    int m_nChannels;
+    int m_chunkSize;
+    FCriticalSection m_mutex;
+};

@@ -2,9 +2,9 @@
 #include "AudioListener.h"
 #include "WindowsAudioCapture.h"
 
-#define SAFE_RELEASE(punk)  \
-			  if ((punk) != NULL)  \
-				{ (punk)->Release(); (punk) = NULL; }
+// #define SAFE_RELEASE(punk)  \
+// 			  if ((punk) != NULL)  \
+// 				{ (punk)->Release(); (punk) = NULL; }
 
 HRESULT ThrowOrExit(HRESULT hr)
 {

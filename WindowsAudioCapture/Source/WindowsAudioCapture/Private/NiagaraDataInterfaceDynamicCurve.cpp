@@ -21,39 +21,46 @@ FNiagaraDataInterfaceProxyDynamicCurve::FNiagaraDataInterfaceProxyDynamicCurve()
     : CurveFloatRegisteredTo(nullptr)
     , NumChannelsInDownsampledBuffer(0)
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::FNiagaraDataInterfaceProxyDynamicCurve"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::FNiagaraDataInterfaceProxyDynamicCurve"));
     VectorVMReadBuffer.Reset();
-    VectorVMReadBuffer.AddZeroed(UNiagaraDataInterfaceDynamicCurve::MaxBufferResolution /** AUDIO_MIXER_MAX_OUTPUT_CHANNELS*/);
+    VectorVMReadBuffer.AddZeroed(
+        UNiagaraDataInterfaceDynamicCurve::MaxBufferResolution /** AUDIO_MIXER_MAX_OUTPUT_CHANNELS*/);
 }
 
 FNiagaraDataInterfaceProxyDynamicCurve::~FNiagaraDataInterfaceProxyDynamicCurve()
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::~FNiagaraDataInterfaceProxyDynamicCurve"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::~FNiagaraDataInterfaceProxyDynamicCurve"));
     check(IsInRenderingThread());
     GPUDownsampledBuffer.Release();
 }
 
 void FNiagaraDataInterfaceProxyDynamicCurve::OnUpdateFloatCurve(UCurveFloat* Curve)
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::OnUpdateFloatCurve(%p)"), Curve);
+    //UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::OnUpdateFloatCurve(%p)"), Curve);
     CurveFloatRegisteredTo = Curve;
+    if (Curve != nullptr) {
+        FScopeLock ScopeLock(&DownsampleBufferLock);
+        VectorVMReadBuffer.Reset();
+        VectorVMReadBuffer.AddZeroed(Curve->FloatCurve.GetNumKeys());
+    }
 }
 
 UNiagaraDataInterfaceDynamicCurve::UNiagaraDataInterfaceDynamicCurve(FObjectInitializer const& ObjectInitializer)
     : Super(ObjectInitializer)
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::UNiagaraDataInterfaceDynamicCurve"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::UNiagaraDataInterfaceDynamicCurve"));
     Proxy = TUniquePtr<FNiagaraDataInterfaceProxyDynamicCurve>(new FNiagaraDataInterfaceProxyDynamicCurve());
 }
 
 float FNiagaraDataInterfaceProxyDynamicCurve::SampleAudio(float NormalizedPositionInBuffer)
 {
-	//int32 FrameIndex = FMath::CeilToInt(NormalizedPositionInBuffer) % VectorVMReadBuffer.Num();
+    //int32 FrameIndex = FMath::CeilToInt(NormalizedPositionInBuffer) % VectorVMReadBuffer.Num();
     NormalizedPositionInBuffer = FMath::Clamp(NormalizedPositionInBuffer, 0.0f, 1.0f);
-    int32 FrameIndex = FMath::CeilToInt(FMath::Lerp<float>(0.0, VectorVMReadBuffer.Num() - 1, NormalizedPositionInBuffer));
+    int32 FrameIndex = FMath::CeilToInt(
+        FMath::Lerp<float>(0.0, VectorVMReadBuffer.Num() - 1, NormalizedPositionInBuffer));
     float value = VectorVMReadBuffer[FrameIndex];
-// 	UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::SampleAudio: %f, %d, %f"), NormalizedPositionInBuffer, FrameIndex, value);
-	return value;
+    // 	UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::SampleAudio: %f, %d, %f"), NormalizedPositionInBuffer, FrameIndex, value);
+    return value;
 }
 
 void UNiagaraDataInterfaceDynamicCurve::SampleAudio(FVectorVMContext& Context)
@@ -67,7 +74,7 @@ void UNiagaraDataInterfaceDynamicCurve::SampleAudio(FVectorVMContext& Context)
 
     for (int32 InstanceIdx = 0; InstanceIdx < Context.NumInstances; ++InstanceIdx) {
         float Position = InNormalizedPos.Get();
-//         UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::SampleAudio(FVectorVMContext) : position = %f"), Position);
+        //         UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::SampleAudio(FVectorVMContext) : position = %f"), Position);
         *OutAmplitude.GetDest() = GetProxyAs<FNiagaraDataInterfaceProxyDynamicCurve>()->SampleAudio(Position);
 
         InNormalizedPos.Advance();
@@ -77,13 +84,13 @@ void UNiagaraDataInterfaceDynamicCurve::SampleAudio(FVectorVMContext& Context)
 
 int32 FNiagaraDataInterfaceProxyDynamicCurve::GetNumChannels()
 {
-//     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::GetNumChannels"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::GetNumChannels"));
     return NumChannelsInDownsampledBuffer.GetValue();
 }
 
 void UNiagaraDataInterfaceDynamicCurve::GetNumChannels(FVectorVMContext& Context)
 {
-//     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::GetNumChannels"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::GetNumChannels"));
     VectorVM::FExternalFuncRegisterHandler<int32> OutChannel(Context);
 
     for (int32 InstanceIdx = 0; InstanceIdx < Context.NumInstances; ++InstanceIdx) {
@@ -93,15 +100,17 @@ void UNiagaraDataInterfaceDynamicCurve::GetNumChannels(FVectorVMContext& Context
 
 void UNiagaraDataInterfaceDynamicCurve::GetFunctions(TArray<FNiagaraFunctionSignature>& OutFunctions)
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::GetFunctions"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::GetFunctions"));
     Super::GetFunctions(OutFunctions);
 
     {
         FNiagaraFunctionSignature SampleAudioBufferSignature;
         SampleAudioBufferSignature.Name = SampleAudioBufferFunctionName;
         SampleAudioBufferSignature.Inputs.Add(FNiagaraVariable(GetClass(), TEXT("Curve")));
-        SampleAudioBufferSignature.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("NormalizedPositionInBuffer")));
-        SampleAudioBufferSignature.Outputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Amplitude")));
+        SampleAudioBufferSignature.Inputs.Add(FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(),
+            TEXT("NormalizedPositionInBuffer")));
+        SampleAudioBufferSignature.Outputs.Add(
+            FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("Amplitude")));
 
         SampleAudioBufferSignature.bMemberFunction = true;
         SampleAudioBufferSignature.bRequiresContext = false;
@@ -111,9 +120,10 @@ void UNiagaraDataInterfaceDynamicCurve::GetFunctions(TArray<FNiagaraFunctionSign
 
 DEFINE_NDI_DIRECT_FUNC_BINDER(UNiagaraDataInterfaceDynamicCurve, SampleAudio);
 
-void UNiagaraDataInterfaceDynamicCurve::GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo, void* InstanceData, FVMExternalFunction& OutFunc)
+void UNiagaraDataInterfaceDynamicCurve::GetVMExternalFunction(const FVMExternalFunctionBindingInfo& BindingInfo,
+    void* InstanceData, FVMExternalFunction& OutFunc)
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::GetVMExternalFunction"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::GetVMExternalFunction"));
     if (BindingInfo.Name == SampleAudioBufferFunctionName) {
         NDI_FUNC_BINDER(UNiagaraDataInterfaceDynamicCurve, SampleAudio)::Bind(this, OutFunc);
     } else {
@@ -121,9 +131,11 @@ void UNiagaraDataInterfaceDynamicCurve::GetVMExternalFunction(const FVMExternalF
     }
 }
 
-bool UNiagaraDataInterfaceDynamicCurve::GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo, int FunctionInstanceIndex, FString& OutHLSL)
+bool UNiagaraDataInterfaceDynamicCurve::GetFunctionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo,
+    const FNiagaraDataInterfaceGeneratedFunction& FunctionInfo,
+    int FunctionInstanceIndex, FString& OutHLSL)
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::GetFunctionHLSL"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::GetFunctionHLSL"));
     bool ParentRet = Super::GetFunctionHLSL(ParamInfo, FunctionInfo, FunctionInstanceIndex, OutHLSL);
     if (ParentRet) {
         return true;
@@ -138,23 +150,23 @@ bool UNiagaraDataInterfaceDynamicCurve::GetFunctionHLSL(const FNiagaraDataInterf
 		 * float Fraction = HigherFrameIndex - FrameIndex;
 		 * return FMath::Lerp<float>(LowerFrameAmplitude, HigherFrameAmplitude, Fraction);
 		 */
-        static const TCHAR* FormatBounds = TEXT(R"(
-			void {FunctionName}(float In_NormalizedPosition, int In_ChannelIndex, out float Out_Val)
+        static const TCHAR* FormatBounds = TEXT(
+            R"(
+			void {FunctionName}(float In_NormalizedPosition, out float Out_Val)
 			{
-				float FrameIndex = In_NormalizedPosition * {AudioBufferNumSamples} / {ChannelCount};
+				float FrameIndex = In_NormalizedPosition * {AudioBufferNumSamples} / 1.0;
 				int LowerIndex = floor(FrameIndex);
 				int UpperIndex =  LowerIndex < {AudioBufferNumSamples} ? LowerIndex + 1.0 : LowerIndex;
 				float Fraction = FrameIndex - LowerIndex;
-				float LowerValue = {AudioBuffer}.Load(LowerIndex * {ChannelCount} + In_ChannelIndex);
-				float UpperValue = {AudioBuffer}.Load(UpperIndex * {ChannelCount} + In_ChannelIndex);
+				float LowerValue = {AudioBuffer}.Load(LowerIndex * 1.0 );
+				float UpperValue = {AudioBuffer}.Load(UpperIndex * 1.0 );
 				Out_Val = lerp(LowerValue, UpperValue, Fraction);
 			}
 		)");
         TMap<FString, FStringFormatArg> ArgsBounds = {
             { TEXT("FunctionName"), FStringFormatArg(FunctionInfo.InstanceName) },
             { TEXT("AudioBuffer"), FStringFormatArg(AudioBufferName + ParamInfo.DataInterfaceHLSLSymbol) },
-            { TEXT("ChannelCount"), FStringFormatArg(1) },
-            { TEXT("AudioBufferNumSamples"), FStringFormatArg(256) },
+            { TEXT("AudioBufferNumSamples"), FStringFormatArg(FloatCurve != nullptr ? FloatCurve->FloatCurve.GetNumKeys() : 0) },
         };
         OutHLSL += FString::Format(FormatBounds, ArgsBounds);
         return true;
@@ -163,15 +175,16 @@ bool UNiagaraDataInterfaceDynamicCurve::GetFunctionHLSL(const FNiagaraDataInterf
     }
 }
 
-void UNiagaraDataInterfaceDynamicCurve::GetParameterDefinitionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo, FString& OutHLSL)
+void UNiagaraDataInterfaceDynamicCurve::GetParameterDefinitionHLSL(const FNiagaraDataInterfaceGPUParamInfo& ParamInfo,
+    FString& OutHLSL)
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::GetParameterDefinitionHLSL"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::GetParameterDefinitionHLSL"));
     Super::GetParameterDefinitionHLSL(ParamInfo, OutHLSL);
 
     static const TCHAR* FormatDeclarations = TEXT(R"(				
 		Buffer<float> {AudioBufferName};
-
 	)");
+
     TMap<FString, FStringFormatArg> ArgsDeclarations = {
         { TEXT("AudioBufferName"), FStringFormatArg(AudioBufferName + ParamInfo.DataInterfaceHLSLSymbol) },
     };
@@ -183,13 +196,13 @@ struct FNiagaraDataInterfaceParametersCS_DynamicCurve : public FNiagaraDataInter
 
     void Bind(const FNiagaraDataInterfaceGPUParamInfo& ParameterInfo, const class FShaderParameterMap& ParameterMap)
     {
-        UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceParametersCS_DynamicCurve::Bind"));
+        //         UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceParametersCS_DynamicCurve::Bind"));
         AudioBuffer.Bind(ParameterMap, *(AudioBufferName + ParameterInfo.DataInterfaceHLSLSymbol));
     }
 
     void Set(FRHICommandList& RHICmdList, const FNiagaraDataInterfaceSetArgs& Context) const
     {
-        UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceParametersCS_DynamicCurve::Set"));
+        //         UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceParametersCS_DynamicCurve::Set"));
         check(IsInRenderingThread());
 
         FRHIComputeShader* ComputeShaderRHI = Context.Shader.GetComputeShader();
@@ -206,31 +219,9 @@ struct FNiagaraDataInterfaceParametersCS_DynamicCurve : public FNiagaraDataInter
 
 IMPLEMENT_NIAGARA_DI_PARAMETER(UNiagaraDataInterfaceDynamicCurve, FNiagaraDataInterfaceParametersCS_DynamicCurve);
 
-void FNiagaraDataInterfaceProxyDynamicCurve::OnUpdateResampling(int32 InResolution, float InScopeInMilliseconds)
-{
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::OnUpdateResampling"));
-    Resolution = InResolution;
-    ScopeInMilliseconds = InScopeInMilliseconds;
-
-    const int32 NumSamplesInBuffer = Resolution * NumChannelsInDownsampledBuffer.GetValue();
-    if (NumSamplesInBuffer) {
-        ENQUEUE_RENDER_COMMAND(FUpdateDIAudioBuffer)
-        (
-            [&, NumSamplesInBuffer](FRHICommandListImmediate& RHICmdList) {
-                if (GPUDownsampledBuffer.NumBytes > 0) {
-                    GPUDownsampledBuffer.Release();
-                }
-
-                GPUDownsampledBuffer.Initialize(sizeof(float), NumSamplesInBuffer, EPixelFormat::PF_R32_FLOAT, BUF_Static);
-            });
-
-        VectorVMReadBuffer.SetNumZeroed(UNiagaraDataInterfaceDynamicCurve::MaxBufferResolution /** AUDIO_MIXER_MAX_OUTPUT_CHANNELS*/);
-    }
-}
-
 FReadBuffer& FNiagaraDataInterfaceProxyDynamicCurve::ComputeAndPostSRV()
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::ComputeAndPostSRV"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::ComputeAndPostSRV"));
     // Copy to GPUDownsampledBuffer:
     PostAudioToGPU();
     return GPUDownsampledBuffer;
@@ -239,7 +230,7 @@ FReadBuffer& FNiagaraDataInterfaceProxyDynamicCurve::ComputeAndPostSRV()
 #if WITH_EDITOR
 void UNiagaraDataInterfaceDynamicCurve::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::PostEditChangeProperty"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::PostEditChangeProperty"));
     Super::PostEditChangeProperty(PropertyChangedEvent);
 
     static FName FloatCurveFName = GET_MEMBER_NAME_CHECKED(UNiagaraDataInterfaceDynamicCurve, FloatCurve);
@@ -256,11 +247,12 @@ void UNiagaraDataInterfaceDynamicCurve::PostEditChangeProperty(struct FPropertyC
 
 void UNiagaraDataInterfaceDynamicCurve::PostInitProperties()
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::PostInitProperties"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::PostInitProperties"));
     Super::PostInitProperties();
 
     if (HasAnyFlags(RF_ClassDefaultObject)) {
-        FNiagaraTypeRegistry::Register(FNiagaraTypeDefinition(GetClass()), /*bCanBeParameter*/ true, /*bCanBePayload*/ false, /*bIsUserDefined*/ false);
+        FNiagaraTypeRegistry::Register(FNiagaraTypeDefinition(GetClass()), /*bCanBeParameter*/ true, /*bCanBePayload*/
+            false, /*bIsUserDefined*/ false);
     }
 
     GetProxyAs<FNiagaraDataInterfaceProxyDynamicCurve>()->OnUpdateFloatCurve(FloatCurve);
@@ -268,12 +260,12 @@ void UNiagaraDataInterfaceDynamicCurve::PostInitProperties()
 
 void FNiagaraDataInterfaceProxyDynamicCurve::OnBeginDestroy()
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::OnBeginDestroy"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::OnBeginDestroy"));
 }
 
 void UNiagaraDataInterfaceDynamicCurve::BeginDestroy()
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::BeginDestroy"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::BeginDestroy"));
     GetProxyAs<FNiagaraDataInterfaceProxyDynamicCurve>()->OnBeginDestroy();
 
     Super::BeginDestroy();
@@ -281,14 +273,14 @@ void UNiagaraDataInterfaceDynamicCurve::BeginDestroy()
 
 void UNiagaraDataInterfaceDynamicCurve::PostLoad()
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::PostLoad"));
+    //UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::PostLoad"));
     Super::PostLoad();
     GetProxyAs<FNiagaraDataInterfaceProxyDynamicCurve>()->OnUpdateFloatCurve(FloatCurve);
 }
 
 bool UNiagaraDataInterfaceDynamicCurve::Equals(const UNiagaraDataInterface* Other) const
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::Equals"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::Equals"));
     const UNiagaraDataInterfaceDynamicCurve* CastedOther = Cast<const UNiagaraDataInterfaceDynamicCurve>(Other);
     return Super::Equals(Other)
         && (CastedOther->FloatCurve == FloatCurve);
@@ -296,7 +288,7 @@ bool UNiagaraDataInterfaceDynamicCurve::Equals(const UNiagaraDataInterface* Othe
 
 bool UNiagaraDataInterfaceDynamicCurve::CopyToInternal(UNiagaraDataInterface* Destination) const
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::CopyToInternal"));
+    //     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("UNiagaraDataInterfaceDynamicCurve::CopyToInternal"));
     Super::CopyToInternal(Destination);
 
     UNiagaraDataInterfaceDynamicCurve* CastedDestination = Cast<UNiagaraDataInterfaceDynamicCurve>(Destination);
@@ -311,19 +303,21 @@ bool UNiagaraDataInterfaceDynamicCurve::CopyToInternal(UNiagaraDataInterface* De
 
 void FNiagaraDataInterfaceProxyDynamicCurve::PostAudioToGPU()
 {
-    UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::PostAudioToGPU"));
+    //UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::PostAudioToGPU"));
     ENQUEUE_RENDER_COMMAND(FUpdateDIAudioBuffer)
     (
         [&](FRHICommandListImmediate& RHICmdList) {
-            UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::ENQUEUE_RENDER_COMMAND"));
             DownsampleAudioToBuffer();
             size_t BufferSize = DownsampledBuffer.Num() * sizeof(float);
+            //             UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::ENQUEUE_RENDER_COMMAND; BufferSize=%d"), BufferSize);
             if (BufferSize != 0 && !GPUDownsampledBuffer.NumBytes) {
-                GPUDownsampledBuffer.Initialize(sizeof(float), Resolution * NumChannelsInDownsampledBuffer.GetValue(), EPixelFormat::PF_R32_FLOAT, BUF_Static);
+                GPUDownsampledBuffer.Initialize(sizeof(float), DownsampledBuffer.Num(),
+                    EPixelFormat::PF_R32_FLOAT, BUF_Static);
             }
 
             if (GPUDownsampledBuffer.NumBytes > 0) {
-                float* BufferData = static_cast<float*>(RHILockVertexBuffer(GPUDownsampledBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
+                float* BufferData = static_cast<float*>(RHILockVertexBuffer(
+                    GPUDownsampledBuffer.Buffer, 0, BufferSize, EResourceLockMode::RLM_WriteOnly));
                 FScopeLock ScopeLock(&DownsampleBufferLock);
                 FPlatformMemory::Memcpy(BufferData, DownsampledBuffer.GetData(), BufferSize);
                 RHIUnlockVertexBuffer(GPUDownsampledBuffer.Buffer);
@@ -333,8 +327,6 @@ void FNiagaraDataInterfaceProxyDynamicCurve::PostAudioToGPU()
 
 int32 FNiagaraDataInterfaceProxyDynamicCurve::DownsampleAudioToBuffer()
 {
-//     UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::DownsampleAudioToBuffer"));
-
     if (CurveFloatRegisteredTo != nullptr) {
         FScopeLock ScopeLock(&DownsampleBufferLock);
 
@@ -343,18 +335,22 @@ int32 FNiagaraDataInterfaceProxyDynamicCurve::DownsampleAudioToBuffer()
         Audio::AlignedFloatBuffer data;
         data.Reserve(CurveFloatRegisteredTo->FloatCurve.GetNumKeys());
         int32 index = 0;
-        FRichCurve *dup = static_cast<FRichCurve*>(CurveFloatRegisteredTo->FloatCurve.Duplicate());
+        FRichCurve* dup = static_cast<FRichCurve*>(CurveFloatRegisteredTo->FloatCurve.Duplicate());
 
         for (FRichCurveKey key : dup->GetConstRefOfKeys()) {
             data.Add(FMath::Clamp<float>(key.Value, 0.0f, 1.0f));
         }
 
-		delete dup;
-		
+        delete dup;
+
         FMemory::Memcpy(VectorVMReadBuffer.GetData(), data.GetData(), data.Num() * sizeof(float));
 
-		DownsampledBuffer.Reserve(data.Num());
-        FMemory::Memcpy(DownsampledBuffer.GetData(), data.GetData(), data.Num() * sizeof(float));
+        //DownsampledBuffer.Reserve(VectorVMReadBuffer.Num());
+        DownsampledBuffer = VectorVMReadBuffer;
+        //FMemory::Memcpy(DownsampledBuffer.GetData(), VectorVMReadBuffer.GetData(), VectorVMReadBuffer.Num() * sizeof(float));
+
+        //         UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::DownsampleAudioToBuffer (%d, %d, %d)"),
+        //             DownsampledBuffer.Num(), data.Num(), VectorVMReadBuffer.Num());
         return data.Num();
     }
     return DownsampledBuffer.Num();

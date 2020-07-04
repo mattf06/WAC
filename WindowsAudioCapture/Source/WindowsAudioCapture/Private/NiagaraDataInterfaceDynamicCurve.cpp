@@ -140,27 +140,15 @@ bool UNiagaraDataInterfaceDynamicCurve::GetFunctionHLSL(const FNiagaraDataInterf
     if (ParentRet) {
         return true;
     } else if (FunctionInfo.DefinitionName == SampleAudioBufferFunctionName) {
-        // See SampleBuffer(float InNormalizedPosition, int32 InChannel)
-        /**
-		 * float FrameIndex = NormalizedPositionInBuffer * DownsampledBuffer.Num();
-		 * int32 LowerFrameIndex = FMath::FloorToInt(FrameIndex);
-		 * float LowerFrameAmplitude = DownsampledBuffer[LowerFrameIndex * NumChannelsInDownsampledBuffer + ChannelIndex];
-		 * int32 HigherFrameIndex = FMath::CeilToInt(FrameIndex);
-		 * float HigherFrameAmplitude = DownsampledBuffer[HigherFrameIndex * NumChannelsInDownsampledBuffer + ChannelIndex];
-		 * float Fraction = HigherFrameIndex - FrameIndex;
-		 * return FMath::Lerp<float>(LowerFrameAmplitude, HigherFrameAmplitude, Fraction);
-		 */
+        // See SampleBuffer(float InNormalizedPosition)
         static const TCHAR* FormatBounds = TEXT(
             R"(
 			void {FunctionName}(float In_NormalizedPosition, out float Out_Val)
 			{
-				float FrameIndex = In_NormalizedPosition * {AudioBufferNumSamples} / 1.0;
-				int LowerIndex = floor(FrameIndex);
-				int UpperIndex =  LowerIndex < {AudioBufferNumSamples} ? LowerIndex + 1.0 : LowerIndex;
-				float Fraction = FrameIndex - LowerIndex;
-				float LowerValue = {AudioBuffer}.Load(LowerIndex * 1.0 );
-				float UpperValue = {AudioBuffer}.Load(UpperIndex * 1.0 );
-				Out_Val = lerp(LowerValue, UpperValue, Fraction);
+				float FrameIndex = lerp(0.0, {AudioBufferNumSamples}, In_NormalizedPosition);
+				int Index = floor(FrameIndex);
+				float Value = {AudioBuffer}.Load(Index);
+				Out_Val = Value;
 			}
 		)");
         TMap<FString, FStringFormatArg> ArgsBounds = {
@@ -345,9 +333,7 @@ int32 FNiagaraDataInterfaceProxyDynamicCurve::DownsampleAudioToBuffer()
 
         FMemory::Memcpy(VectorVMReadBuffer.GetData(), data.GetData(), data.Num() * sizeof(float));
 
-        //DownsampledBuffer.Reserve(VectorVMReadBuffer.Num());
         DownsampledBuffer = VectorVMReadBuffer;
-        //FMemory::Memcpy(DownsampledBuffer.GetData(), VectorVMReadBuffer.GetData(), VectorVMReadBuffer.Num() * sizeof(float));
 
         //         UE_LOG(WindowsAudioCaptureLog, Log, TEXT("FNiagaraDataInterfaceProxyDynamicCurve::DownsampleAudioToBuffer (%d, %d, %d)"),
         //             DownsampledBuffer.Num(), data.Num(), VectorVMReadBuffer.Num());

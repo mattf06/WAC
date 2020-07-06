@@ -46,7 +46,7 @@ void AWindowsAudioCaptureActor::onCaptureData()
     if (data.Num() > 0) {
         float outAvgBass = 0;
         GetAverageSubBassValue(data, outAvgBass);
-        data.SetNum(data.Num() / 2);
+        data.SetNum(maxNumberOfData);
 
         // broadcast data to BP client(s)
         OnAudioCaptureEvent.Broadcast(data);
@@ -55,6 +55,7 @@ void AWindowsAudioCaptureActor::onCaptureData()
         OnAudioCaptureNativeEvent.Broadcast(data);
 
         if (curveAudioData != nullptr) {
+            FloatCurveReset();
             for (int i = 0; i < data.Num(); i++) {
                 curveAudioData->FloatCurve.UpdateOrAddKey(i, data[i]);
             }
@@ -66,6 +67,24 @@ void AWindowsAudioCaptureActor::onCaptureData()
 void AWindowsAudioCaptureActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+}
+
+#if WITH_EDITOR
+void AWindowsAudioCaptureActor::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+    Super::PostEditChangeProperty(PropertyChangedEvent);
+
+    FloatCurveReset();
+}
+#endif
+
+FORCEINLINE_DEBUGGABLE void AWindowsAudioCaptureActor::FloatCurveReset()
+{
+    if (curveAudioData != nullptr) {
+        if (curveAudioData->FloatCurve.GetNumKeys() != maxNumberOfData) {
+            curveAudioData->FloatCurve.Reset();
+        }
+    }
 }
 
 // This function will return an Array of Frequencies.

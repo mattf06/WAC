@@ -48,7 +48,16 @@ public:
     UPROPERTY(EditAnywhere, Category = "WindowsAudioCapture | Curve")
     UCurveFloat* curveAudioData = nullptr;
 
+    UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "WindowsAudioCapture | Number of Values", meta = (ClampMax = 255.00, ClampMin = 1.00))
+    int32 maxNumberOfData = 255;
+
     FWinAudioCaptureNativeEvent OnAudioCaptureNativeEvent;
+
+#if WITH_EDITOR
+    virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif // WITH_EDITOR
+
+    FORCEINLINE_DEBUGGABLE void FloatCurveReset();
 
 protected:
     /**
